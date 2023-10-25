@@ -21,21 +21,25 @@
 #define timeBetweenRotationDirectionToggles 1000 // Milliseconds
 #define timeBetweenLinearDirectionToggles   1000 // Milliseconds
 
-
+DynamicJsonDocument status(128);
 
 void setup() {
   // Start serial port at given baudrate
-  Serial.begin(9600);
+  Serial.begin(38400);
   // Set pin modes
   pinMode(greenButtonPin, INPUT);
   pinMode(redButtonPin, INPUT);
   pinMode(shutdownButtonPin, INPUT);
   pinMode(torqueSensorPin, INPUT);
   pinMode(temperatureSensorPin, INPUT);
+  pinMode(rotationDirectionPin, OUTPUT);
+  pinMode(rotationPulsePin, OUTPUT);
+  pinMode(linearDirectionPin, OUTPUT);
+  pinMode(linearPulsePin, OUTPUT);
 }
 
 void loop() {
-  if (digitalRead(greenButtonPin)) {
+  if (!digitalRead(greenButtonPin)) {
     uint8_t experimentExitCode = runExperiment(
      greenButtonPin,
      redButtonPin,
@@ -56,7 +60,8 @@ void loop() {
         break;
       case 1: // shutdown button
         while(true) {
-          Serial.println("Shutdown pending.");
+          status["msg"] = "Shutdown pending.";
+          serializeJson(status, Serial);
           delay(1000);
         }
       default: // unknown error
@@ -66,4 +71,5 @@ void loop() {
         }
     }
   }
+
 }

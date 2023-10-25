@@ -37,27 +37,26 @@ uint8_t runExperiment(
   bool rotationDirection = true; // CW when >= 0, CCW otherwise
   bool linearDirection = true;   // Forward when >= 0, Backward otherwise
   uint32_t lastRotationDirectionToggleTime, lastLinearDirectionToggleTime;
+    /* Motor Direction Toggling */
+    bool rotationDirectionHasResetThisPeriod = false;
+    bool linearDirectionHasResetThisPeriod = false;
   data["rb"] = false;
   data["sdb"] = false;
 
-  while (!data["rb"] || !data["sdb"] || cycle <= 10000) { // cycle count prevents infinite loop
+  while (!data["rb"] && !data["sdb"]) {
     // Get current cycle and time stamp
     data["c"] = cycle;
     data["t"] = (uint32_t)millis();
   
     // Get state of buttons
-    data["gb"] = (bool)digitalRead(greenButtonPin);
-    data["rb"] = (bool)digitalRead(redButtonPin);
-    data["sdb"] = (bool)digitalRead(shutdownButtonPin);
+    data["gb"] = !(bool)digitalRead(greenButtonPin);
+    data["rb"] = !(bool)digitalRead(redButtonPin);
+    //data["sdb"] = !(bool)digitalRead(shutdownButtonPin);
 
     // Get sensor values: raw 10-bit form (as the Pi is better-equipped for math)
     data["tq"] = (int)analogRead(torqueSensorPin);
     data["tm"] = (int)analogRead(temperatureSensorPin);
 
-
-    /* Motor Direction Toggling */
-    bool rotationDirectionHasResetThisPeriod = false;
-    bool linearDirectionHasResetThisPeriod = false;
 
     // Rotation
     if (!rotationDirectionHasResetThisPeriod) {
@@ -65,8 +64,9 @@ uint8_t runExperiment(
       rotationDirectionHasResetThisPeriod = true;
       lastRotationDirectionToggleTime = data["t"];
       digitalWrite(rotationDirectionPin, rotationDirection);
+      data["rd"] = rotationDirection;
     }
-    else if (static_cast<uint32_t>(data["t"]) - lastRotationDirectionToggleTime >= timeBetweenRotationDirectionToggles) {
+    else if ((uint32_t)(data["t"]) - lastRotationDirectionToggleTime >= timeBetweenRotationDirectionToggles) {
       rotationDirectionHasResetThisPeriod = false;
     }
 
@@ -76,10 +76,11 @@ uint8_t runExperiment(
       linearDirectionHasResetThisPeriod = true;
       lastLinearDirectionToggleTime = data["t"];
       digitalWrite(linearDirectionPin, linearDirection);
+      data["ld"] = linearDirection;
     }
     else{
-      if (static_cast<uint32_t>(data["t"]) - lastLinearDirectionToggleTime >= timeBetweenLinearDirectionToggles) {
-        linearDirectionHasResetThisPeriod = true;
+      if ((uint32_t)(data["t"]) - lastLinearDirectionToggleTime >= timeBetweenLinearDirectionToggles) {
+        linearDirectionHasResetThisPeriod = false;
       }
     }
 
@@ -92,7 +93,7 @@ uint8_t runExperiment(
   }
 
   /* Shutdown Cases */
-  if (static_cast<bool>(data["sdb"])) {
+  if (static_cast<bool>(data["sdb"]) && false) {
     digitalWrite(rotationPulsePin, 0);
     digitalWrite(linearPulsePin, 0);
     return 1;
